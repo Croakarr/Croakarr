@@ -7,11 +7,16 @@ export default class Plugin {
     manifest: PluginManifest;
     iface: PluginInterface;
     entity: any;
+    status: pluginStatus;
 
     constructor(entrypoint: string, manifest: PluginManifest, config: CroakerrConfig) {
         this.manifest = manifest;
         this.iface = new PluginInterface(manifest, config);
         this.entity = require(entrypoint);
+        this.status = {
+            active: false,
+            error: ""
+        }
     }
 
     init() {
@@ -23,4 +28,10 @@ export default class Plugin {
             logger.debug(e + "");
         }
     }
+}
+
+
+interface pluginStatus {
+    active: boolean,
+    error: any
 }

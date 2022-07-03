@@ -6,6 +6,7 @@ import PluginManager from "./helpers/PluginManager";
 import { CroakerrConfig } from "./interfaces/CroakerrConfig";
 import { Logger } from "./helpers/Logger";
 import { resolve } from "path";
+import { Application } from "express";
 
 readline.emitKeypressEvents(process.stdin);
 process.stdin.setRawMode(true);
@@ -17,9 +18,11 @@ export default class REPL extends EventEmitter {
     history: string[] = [];
     historyPosition: number = 0;
     logger: Logger;
+    app: Application;
     command: string = "";
-    constructor(logger: Logger, server: Server, config: CroakerrConfig, pm: PluginManager) {
+    constructor(logger: Logger, server: Server, config: CroakerrConfig, pm: PluginManager, app: Application) {
         super();
+        this.app = app;
         this.server = server;
         this.config = config;
         this.pm = pm;
@@ -40,23 +43,28 @@ export default class REPL extends EventEmitter {
                         process.stdout.write("\r🐸 \x1b[32m>\x1b[0m " + this.command + "\x1b[K");
                         break;
                     case "up":
-                        if (this.historyPosition + 1 <= this.history.length) {
-                            this.historyPosition += 1;
-                            this.command = this.history[this.history.length - this.historyPosition]
+                        if (this.historyPosition - 1 < 0) {
+                            this.historyPosition -= 1;
+                            if (this.history[this.historyPosition] !== undefined) {
+                                this.command = this.history[this.historyPosition]
+                            } else {
+                                this.command = "";
+                            }
                         } else {
                             if (this.history.length === 0) {
                                 this.command = "";
-                            } else this.command = this.history[this.history.length - this.historyPosition]
+                            } else this.command = this.history[this.historyPosition]
                         }
                         break;
                     case "down":
-                        if (this.historyPosition - 1 > -1) {
-                            this.historyPosition -= 1;
-                            this.command = this.history[this.history.length - this.historyPosition]
-                        } else {
-                            if (this.history.length - this.historyPosition === 0) {
-                                this.command = "";
-                            } else this.command = this.history[this.history.length - this.historyPosition]
+                        if (this.history.length > 0) {
+                            if (this.historyPosition + 1 < 0) {
+                                if (this.history[this.historyPosition] !== undefined) {
+                                    this.command = this.history[this.historyPosition]
+                                } else {
+                                    this.command = "";
+                                }
+                            }
                         }
                         break;
                     default:
@@ -107,6 +115,17 @@ export default class REPL extends EventEmitter {
                 args.shift();
                 this.plugins(args);
                 break;
+
+            case "reload":
+                this.logger.warn("RELOAD REQUESTED, UNLOADING PLUGINS");
+                this.pm.unloadAll();
+                this.server.close();
+                console.clear();
+                this.pm.loadAll(this.config);
+                this.logger.log(`Listening on http://${this.config.interface}:${this.config.port}`);
+                this.server = this.app.listen(this.config.port, this.config.interface)
+                break;
+
             case "config":
                 console.log(" Network Interface: " + this.config.interface);
                 console.log("              Port: " + this.config.port);
@@ -124,18 +143,54 @@ export default class REPL extends EventEmitter {
 
     plugins(args: string[]) {
         switch (args[0]) {
+            case "info":
+                if (args[1]) {
+                    let plugin = this.pm.plugins.get(args[1])
+                    if (plugin) {
+                        console.log(`Plugin:      ${plugin.manifest.name}`);
+                        console.log(`Version:     ${plugin.manifest.version}`);
+                        console.log(`Description: ${plugin.manifest.description ? plugin.manifest.description : "Not Specified"}`);
+                        console.log(`Author:      ${plugin.manifest.author}`);
+                        console.log(`Homepage:    ${plugin.manifest.homepage ? plugin.manifest.homepage : "Not Specified"}`);
+                        console.log(`Hook Audit:`)
+                        let hooks = Array.from(plugin.iface.events.keys());
+                        for (let i = 0; i < hooks.length; i++) {
+                            let hook = hooks[i];
+                            console.log("  - ", hook);
+                        }
+                    } else {
+                        console.log("Error: Unable to locate plugin by that name.")
+                    }
+                } else {
+                    console.log("Error: Missing argument <name>")
+                }
+                break;
             case "list":
                 if (args[1]) {
                     console.log("filters not implemented");
                     if (this.pm.plugins.size === 0) {
                         console.log("\x1b[33mNo plugins loaded.\x1b[0m")
                     } else {
-                        let plugins = Array.from(this.pm.plugins.keys());
+                        let plugins = Array.from(this.pm.plugins.entries());
                         for (let i = 0; i < plugins.length; i++) {
-                            let name = plugins[i];
-                            let plugin = this.pm.plugins.get(name);
+                            let [name, plugin] = plugins[i]
                             if (plugin) {
-                                console.log(`\x1b[32m${plugin.manifest.name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                if (plugin.status.active) {
+                                    if (plugin.status.error === "Naming Collision") {
+                                        console.log(`\x1b[33m${name}\x1b[0m (${plugin.manifest.name}) - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    } else {
+                                        console.log(`\x1b[32m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    }
+                                } else {
+                                    if (plugin.status.error === "Plugin Unloaded") {
+                                        console.log(`\x1b[2m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    } else if (plugin.status.error === "Plugin Unloaded") {
+                                        console.log(`\x1b[33m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    } else {
+                                        console.log(`\x1b[31m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                        console.log(` - Error: ${plugin.status.error}`)
+                                    }
+                                }
                             }
                         }
                     }
@@ -144,16 +199,26 @@ export default class REPL extends EventEmitter {
                     if (this.pm.plugins.size === 0) {
                         console.log("\x1b[33mNo plugins loaded.\x1b[0m")
                     } else {
-                        let plugins = Array.from(this.pm.plugins.keys());
+                        let plugins = Array.from(this.pm.plugins.entries());
                         for (let i = 0; i < plugins.length; i++) {
-                            let name = plugins[i];
-                            let plugin = this.pm.plugins.get(name);
+                            let [name, plugin] = plugins[i]
                             if (plugin) {
-                                console.log(`\x1b[32m${plugin.manifest.name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                if (plugin.status.active) {
+                                    if (plugin.status.error === "Naming Collision") {
+                                        console.log(`\x1b[33m${name}\x1b[0m (${plugin.manifest.name}) - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    } else {
+                                        console.log(`\x1b[32m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    }
+                                } else {
+                                    if (plugin.status.error === "Plugin Unloaded") {
+                                        console.log(`\x1b[2m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                    } else {
+                                        console.log(`\x1b[31m${name}\x1b[0m - ${plugin.manifest.version} (By: ${plugin.manifest.author})`)
+                                        console.log(` - Error: ${plugin.status.error}`)
+                                    }
+                                }
                             }
                         }
-
-
                     }
                     console.log("\n\x1b[34mTip!\x1b[0m Get detailed info on a specific plugin by using \x1b[2m\x1b[32mplugin info <plugin name>\x1b[0m")
                 }

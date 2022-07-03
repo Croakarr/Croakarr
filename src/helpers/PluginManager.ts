@@ -193,8 +193,13 @@ export default class PluginManager extends EventEmitter {
                     } else {
                         let conflict = this.plugins.get(plugin.manifest.name);
                         if (conflict !== undefined) {
+                            let alt = "" + Date.now();
+
                             logger.warn(`Plugin naming conflict: Plugin located at ${resolve(path)} conflicts with`)
                             logger.warn(`another plugin located at ${conflict.manifest.internalPath}`)
+                            logger.debug("Plugin loaded under alternate name: " + plugin.manifest.name + alt.substring(alt.length - 3, alt.length));
+                            plugin.status.error = "Naming Collision";
+                            this.plugins.set(plugin.manifest.name + alt.substring(alt.length - 3, alt.length), plugin);
                         }
                     }
                 } else {
@@ -213,9 +218,14 @@ export default class PluginManager extends EventEmitter {
                     try {
                         logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
                         plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+                        plugin.status.active = true;
+                        this.plugins.set(name, plugin);
                     } catch (e) {
                         logger.error("Failed to initialize plugin: " + plugin.manifest.name);
                         logger.debug(e + "");
+                        plugin.status.active = false;
+                        plugin.status.error = e;
+                        this.plugins.set(name, plugin);
                     }
                 } else {
                     logger.warn("Plugin does not include init method: " + plugin.manifest.name);
@@ -235,15 +245,18 @@ export default class PluginManager extends EventEmitter {
             try {
                 if (plugin.entity.disable) {
                     plugin.entity.disable();
-                    this.plugins.delete(name);
-                } else {
-                    logger.debug("Plugin unloaded: " + name);
+                    plugin.status.active = false;
+                    plugin.status.error = "Plugin Unloaded";
+                    this.plugins.set(name, plugin);
                 }
+                this.plugins.delete(name);
+                logger.debug("Plugin unloaded: " + name);
             } catch (e) {
                 logger.error("Unable to unload plugin gracefully: " + name);
                 logger.debug(e + "");
             }
         }
+        this.plugins = new Map();
     }
 
     emitEvent(event: string, data: any) {

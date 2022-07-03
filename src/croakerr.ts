@@ -40,7 +40,7 @@ async function runtime() {
         if (server !== null) {
             if (config !== null) {
                 if (pluginManager !== null) {
-                    new REPL(logger, server, config, pluginManager);
+                    new REPL(logger, server, config, pluginManager, app);
                 } else {
                     logger.error("plugin manager is null, pre-emptively closing to prevent further errors.");
                     process.exit();
