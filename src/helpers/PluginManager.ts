@@ -110,7 +110,7 @@ export default class PluginManager extends EventEmitter {
     emitEvent(event: string, data: any) {
         let plugins = [...this.plugins];
         for (let i = 0; i < plugins.length; i++) {
-            let [name, plugin] = plugins[i];
+            let [_, plugin] = plugins[i];
             let handler = plugin.iface.events.get(event);
             if (handler) handler(data);
         }

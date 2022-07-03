@@ -13,7 +13,6 @@ const app = express();
 
 let config: CroakerrConfig | null;
 let pluginManager: PluginManager | null;
-let server: null;
 
 logger.log("Welcome to Croakerr.")
 logger.log("Please wait whilst we get things started.")
@@ -57,7 +56,7 @@ async function spawnInterface() {
 
 async function router(req: Request, res: Response) {
     try {
-        let [event,data] = parseEvent(req, logger);
+        let [event, data] = parseEvent(req, logger);
 
         if (event.length > 0 && pluginManager !== null) {
             pluginManager.emitEvent(event, data);
@@ -73,6 +72,7 @@ async function router(req: Request, res: Response) {
 function shutdown() {
 
     pluginManager?.unloadAll();
+    
     logger.log("Thank you for using Croakerr.")
     logger.log("Consider giving the project a start on GitHub.")
     logger.log("https://github.com/AltriusRS/Croakerr");

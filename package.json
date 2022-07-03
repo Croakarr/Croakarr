@@ -4,7 +4,7 @@
   "description": "An extensible home media webhook broadcaster",
   "main": "src/croakerr.js",
   "scripts": {
-    "build": "tsc && cd plugins/lidarr && npm run build && cd ../radarr && npm run build && cd ../sonarr && npm run build && cd ../plex && npm run build",
+    "check": "tsc",
     "test": "tsc && node dist/croakerr.js"
   },
   "repository": {
@@ -29,7 +29,8 @@
     "@types/axios": "^0.14.0",
     "@types/express": "^4.17.13",
     "@types/multer": "^1.4.7",
-    "@types/node": "^18.0.0"
+    "@types/node": "^18.0.0",
+    "tslib": "^2.4.0"
   },
   "dependencies": {
     "axios": "^0.27.2",

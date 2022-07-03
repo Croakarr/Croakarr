@@ -49,6 +49,7 @@ export default class PluginInterface {
         } catch (e) {
             logger.error("Failed to fetch data")
             console.log(e)
+            return null
         }
     }
 
