@@ -4,7 +4,7 @@
   "description": "An extensible home media webhook broadcaster",
   "main": "src/croakerr.js",
   "scripts": {
-    "check": "tsc",
+    "check": "tsc --noEmit",
     "test": "tsc && node dist/croakerr.js"
   },
   "repository": {
