@@ -6,11 +6,15 @@ import { CroakerrConfig } from "./interfaces/CroakerrConfig";
 import express, { Request, Response } from "express";
 import multer from "multer";
 import parseEvent from "./helpers/eventParser";
+import { Server } from "net";
+import REPL from "./repl"
 
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
 
+process.env.CROAKERR_VERSION = "0.0.1";
 
+let server: Server | null = null;
 let config: CroakerrConfig | null;
 let pluginManager: PluginManager | null;
 
@@ -31,26 +35,46 @@ async function runtime() {
 
     pluginManager = new PluginManager(config);
 
-    pluginManager.once("loaded", spawnInterface);
+    pluginManager.once("loaded", async () => {
+        await spawnInterface();
+        if (server !== null) {
+            if (config !== null) {
+                if (pluginManager !== null) {
+                    new REPL(logger, server, config, pluginManager);
+                } else {
+                    logger.error("plugin manager is null, pre-emptively closing to prevent further errors.");
+                    process.exit();
+                }
+            } else {
+                logger.error("config is null, pre-emptively closing to prevent further errors.");
+                process.exit();
+            }
+        } else {
+            logger.error("Server is null, pre-emptively closing to prevent further errors.");
+            process.exit();
+        }
+    });
 
     pluginManager.loadAll(config);
+
+
 }
 
 
 async function spawnInterface() {
-    if (config !== null) {
-        app.use(require("body-parser").json())
-
-
-
-        app.all('*', upload.any(), router);
-        app.listen(config.port, config.interface, () => {
-            if (config !== null) logger.log(`Listening on http://${config.interface}:${config.port}`);
-        })
-    } else {
-        logger.error("Config is null upon spawning hook interface.")
-        return;
-    }
+    return new Promise((resolve) => {
+        if (config !== null) {
+            app.use(require("body-parser").json())
+            app.all('*', upload.any(), router);
+            server = app.listen(config.port, config.interface, () => {
+                if (config !== null) logger.log(`Listening on http://${config.interface}:${config.port}`);
+                resolve(null);
+            })
+        } else {
+            logger.error("Config is null upon spawning hook interface.")
+            resolve(null);
+        }
+    })
 }
 
 
@@ -72,7 +96,6 @@ async function router(req: Request, res: Response) {
 function shutdown() {
 
     pluginManager?.unloadAll();
-    
     logger.log("Thank you for using Croakerr.")
     logger.log("Consider giving the project a start on GitHub.")
     logger.log("https://github.com/AltriusRS/Croakerr");

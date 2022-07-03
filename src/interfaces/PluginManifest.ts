@@ -4,6 +4,6 @@ export default interface PluginManifest {
     version: string,
     description: string | undefined,
     homepage: string | undefined,
-    auther: string,
+    author: string,
     entrypoint: string
 }

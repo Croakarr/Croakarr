@@ -1,6 +1,8 @@
 import { EventEmitter } from "events";
-import { existsSync, readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
+
+import Zip from "adm-zip";
 
 import { CroakerrConfig } from "../interfaces/CroakerrConfig";
 import logger, { Logger } from "../helpers/Logger";
@@ -19,8 +21,8 @@ export default class PluginManager extends EventEmitter {
         if (this.paths.length === 0) this.paths.push("plugins");
     }
 
-
-    loadAll(config: CroakerrConfig) {
+    load(config: CroakerrConfig, name: string) {
+        let collections: string[] = [];
         let targets: string[] = [];
 
 
@@ -30,8 +32,144 @@ export default class PluginManager extends EventEmitter {
             logger.debug("Scanning directory for plugins - " + resolve(path));
             let folders = getDirectories(resolve(path));
             logger.debug(`Located ${folders.length} viable plugins`);
-            targets = targets.concat(folders);
+            collections = collections.concat(folders);
         }
+
+        collections = collections.filter(c => c.toLowerCase().endsWith(name.toLowerCase()))
+
+        for (let i = 0; i < collections.length; i++) {
+            let entry = collections[i];
+            if (entry.endsWith(".zip")) {
+                logger.debug(`Plugin is stored in archive.`);
+                logger.debug(`Additional validation enforced.`)
+                let archive = new Zip(entry);
+                let manifest: any = null;
+                try {
+                    let txt = archive.readAsText("croakerr-manifest.json")
+                    manifest = JSON.parse(txt);
+                } catch (e) {
+                    console.log(e);
+                    logger.error("Unable to validate plugin, skipping");
+                }
+
+                if (manifest !== null) {
+                    let path = entry.split("/");
+                    path.pop();
+                    logger.debug("Plugin validation passed.")
+                    let route = resolve(path.join("/"), manifest.name)
+                    logger.debug("Extracting to " + route)
+                    archive.extractAllTo(route);
+                    logger.debug("Removing plugin archive");
+                    rmSync(entry)
+                    targets.push(route);
+                }
+            } else {
+                targets.push(entry);
+            }
+        }
+
+
+        for (let i = 0; i < targets.length; i++) {
+            let path = targets[i];
+            let manifest = resolve(path, "croakerr-manifest.json");
+            let rawManifest = readFileSync(manifest, 'utf-8');
+            let parsed = null;
+            try {
+                parsed = JSON.parse(rawManifest);
+            } catch (e) {
+                logger.error("Failed to parse plugin manifest for plugin: " + path)
+                console.log(e);
+            }
+
+            if (parsed !== null) {
+                if (existsSync(resolve(path, parsed.entrypoint))) {
+                    parsed.internalPath = path;
+                    let plugin = new Plugin(resolve(path, parsed.entrypoint), parsed, config);
+                    if (!this.plugins.has(plugin.manifest.name)) {
+                        logger.debug("Plugin loaded: " + plugin.manifest.name);
+                        this.plugins.set(plugin.manifest.name, plugin);
+                    } else {
+                        let conflict = this.plugins.get(plugin.manifest.name);
+                        if (conflict !== undefined) {
+                            logger.warn(`Plugin naming conflict: Plugin located at ${resolve(path)} conflicts with`)
+                            logger.warn(`another plugin located at ${conflict.manifest.internalPath}`)
+                        }
+                    }
+                } else {
+                    logger.debug("Skipping plugin: " + parsed.name + " Reason: Missing Entrypoint");
+                }
+            }
+        }
+
+        let plugins = Array.from(this.plugins.keys());
+        for (let i = 0; i < plugins.length; i++) {
+            let name = plugins[i];
+            let plugin = this.plugins.get(name);
+
+            if (plugin) {
+                if (plugin.entity.enable) {
+                    try {
+                        logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
+                        plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+                    } catch (e) {
+                        logger.error("Failed to initialize plugin: " + plugin.manifest.name);
+                        logger.debug(e + "");
+                    }
+                } else {
+                    logger.warn("Plugin does not include init method: " + plugin.manifest.name);
+                    console.log(plugin.entity);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    loadAll(config: CroakerrConfig) {
+        let collections: string[] = [];
+        let targets: string[] = [];
+
+
+
+        for (let i = 0; i < this.paths.length; i++) {
+            let path = this.paths[i];
+            logger.debug("Scanning directory for plugins - " + resolve(path));
+            let folders = getDirectories(resolve(path));
+            logger.debug(`Located ${folders.length} viable plugins`);
+            collections = collections.concat(folders);
+        }
+
+        for (let i = 0; i < collections.length; i++) {
+            let entry = collections[i];
+            if (entry.endsWith(".zip")) {
+                logger.debug(`Plugin is stored in archive.`);
+                logger.debug(`Additional validation enforced.`)
+                let archive = new Zip(entry);
+                let manifest: any = null;
+                try {
+                    let txt = archive.readAsText("croakerr-manifest.json")
+                    manifest = JSON.parse(txt);
+                } catch (e) {
+                    console.log(e);
+                    logger.error("Unable to validate plugin, skipping");
+                }
+
+                if (manifest !== null) {
+                    let path = entry.split("/");
+                    path.pop();
+                    logger.debug("Plugin validation passed.")
+                    let route = resolve(path.join("/"), manifest.name)
+                    logger.debug("Extracting to " + route)
+                    archive.extractAllTo(route);
+                    logger.debug("Removing plugin archive");
+                    rmSync(entry)
+                    targets.push(route);
+                }
+            } else {
+                targets.push(entry);
+            }
+        }
+
 
         for (let i = 0; i < targets.length; i++) {
             let path = targets[i];
@@ -97,6 +235,7 @@ export default class PluginManager extends EventEmitter {
             try {
                 if (plugin.entity.disable) {
                     plugin.entity.disable();
+                    this.plugins.delete(name);
                 } else {
                     logger.debug("Plugin unloaded: " + name);
                 }
@@ -121,8 +260,8 @@ export default class PluginManager extends EventEmitter {
 
 function getDirectories(source: string) {
     if (existsSync(source)) return readdirSync(source, { withFileTypes: true })
-        .filter(dirent => dirent.isDirectory())
+        .filter(dirent => dirent.isDirectory() || dirent.name.endsWith(".zip"))
         .map(dirent => source + "/" + dirent.name)
-        .filter(dirent => existsSync(resolve(dirent, "croakerr-manifest.json")));
+        .filter(dirent => existsSync(resolve(dirent, "croakerr-manifest.json")) || dirent.endsWith(".zip"));
     return []
 }

@@ -6,3 +6,5 @@ dist
 build
 package-lock.json
 .tsbuildinfo
+
+plugins/**/*
