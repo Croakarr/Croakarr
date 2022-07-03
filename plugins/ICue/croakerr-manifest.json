@@ -1,7 +1,0 @@
-{
-    "name": "Icue",
-    "version": "1.0.0",
-    "description": "ICue Croakerr integration plugin. Flashes your LEDs the color of the service for which a notification has been received.",
-    "author": "Croakerr",
-    "entrypoint": "dist/entrypoint.js"
-}
