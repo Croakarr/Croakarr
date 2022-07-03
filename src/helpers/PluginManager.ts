@@ -120,8 +120,9 @@ export default class PluginManager extends EventEmitter {
 
 
 function getDirectories(source: string) {
-    return readdirSync(source, { withFileTypes: true })
+    if (existsSync(source)) return readdirSync(source, { withFileTypes: true })
         .filter(dirent => dirent.isDirectory())
         .map(dirent => source + "/" + dirent.name)
-        .filter(dirent => existsSync(resolve(dirent, "croakerr-manifest.json")))
+        .filter(dirent => existsSync(resolve(dirent, "croakerr-manifest.json")));
+    return []
 }
