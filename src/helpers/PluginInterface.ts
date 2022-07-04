@@ -1,24 +1,38 @@
 import axios from "axios";
+import enquirer from "enquirer";
 
-import logger from "../helpers/Logger";
 import { CroakerrConfig } from "../interfaces/CroakerrConfig";
 import PluginManifest from "../interfaces/PluginManifest";
+import { Logger } from "./Logger";
 
+
+const FEATURES: [string, boolean][] = [
+    ["settings", false],
+    ["middleware", false]
+]
 
 export default class PluginInterface {
     events: Map<string, Function> = new Map();
+    features: Map<string, boolean> = new Map();
     manifest: PluginManifest;
     config: CroakerrConfig;
+    logger: Logger;
 
-    constructor(manifest: PluginManifest, config: CroakerrConfig) {
+    constructor(manifest: PluginManifest, config: CroakerrConfig, logger: Logger) {
         this.manifest = manifest;
         this.config = config
+        this.logger = logger;
+
+        // Pre fill the feature map with false values (to disable any unwanted features).
+        for (let i = 0; i < FEATURES.length; i++) {
+            this.features.set(FEATURES[i][0], FEATURES[i][1])
+        }
     }
 
 
     registerListener(event: string, callback: Function): boolean {
         try {
-            logger.debug(`Plugin: ${this.manifest.name}@${this.manifest.version} | Registered listener for event '${event}'`)
+            this.logger.debug(`Registered listener for event '${event}'`)
             this.events.set(event, callback);
             return true;
         } catch (e) {
@@ -34,7 +48,7 @@ export default class PluginInterface {
                 }
             });
         } catch (e) {
-            logger.error("Failed to send data")
+            this.logger.error("Failed to send data")
             console.log(e)
         }
     }
@@ -47,18 +61,44 @@ export default class PluginInterface {
                 }
             })
         } catch (e) {
-            logger.error("Failed to fetch data")
+            this.logger.error("Failed to fetch data")
             console.log(e)
             return null
         }
     }
 
+    async prompt(question: any): Promise<any> {
+        try {
+            process.env.CRPROMPTING = "true";
+            let x = await enquirer.prompt(question);
+            process.stdin.setRawMode(true)
+            process.stdin.setEncoding('utf8')
+            process.env.CRPROMPTING = "false";
+            process.stdin.resume()
+            return x;
+        } catch (e) {
+            process.stdin.setRawMode(true)
+            process.stdin.setEncoding('utf8')
+            process.stdin.resume()
+            process.env.CRPROMPTING = "false";
+            return undefined;
+        }
+    }
+
+    declareFeature(name: string): void {
+        if (this.features.has(name)) {
+            this.features.set(name, true);
+        } else {
+            this.logger.debug(`Unknown feature: "${name}"`);
+        }
+    }
+
     emitTest(event: string) {
         if (this.events.has(event)) {
-            logger.debug(`Plugin: ${this.manifest.name}@${this.manifest.version} | Emitted test for event '${event}'`)
+            this.logger.debug(`Emitted test for event '${event}'`)
             this.events.get(event)?.call(null, null, true)
         } else {
-            logger.debug(`Plugin: ${this.manifest.name}@${this.manifest.version} | Failed to emit test for event '${event}'`)
+            this.logger.debug(`Failed to emit test for event '${event}'`)
 
         }
     }

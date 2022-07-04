@@ -9,7 +9,6 @@ import { resolve } from "path";
 import { Application } from "express";
 
 readline.emitKeypressEvents(process.stdin);
-process.stdin.setRawMode(true);
 
 export default class REPL extends EventEmitter {
     server: Server;
@@ -30,50 +29,54 @@ export default class REPL extends EventEmitter {
         // let interval: null | NodeJS.Timer = null;
         // let showColon: boolean = false;
         process.stdin.on('keypress', (str, key) => {
-            if (key.ctrl && key.name === 'c') {
-                process.exit();
-            } else {
-                switch (key.name) {
-                    case "return":
-                        process.stdout.write("\n");
-                        this.eval();
-                        break;
-                    case "backspace":
-                        this.command = this.command.substring(0, this.command.length - 1);
-                        process.stdout.write("\r🐸 \x1b[32m>\x1b[0m " + this.command + "\x1b[K");
-                        break;
-                    case "up":
-                        if (this.historyPosition - 1 < 0) {
-                            this.historyPosition -= 1;
-                            if (this.history[this.historyPosition] !== undefined) {
-                                this.command = this.history[this.historyPosition]
-                            } else {
-                                this.command = "";
-                            }
-                        } else {
-                            if (this.history.length === 0) {
-                                this.command = "";
-                            } else this.command = this.history[this.historyPosition]
-                        }
-                        break;
-                    case "down":
-                        if (this.history.length > 0) {
-                            if (this.historyPosition + 1 < 0) {
+            if (process.env.CRPROMPTING !== "true") {
+                if (key.ctrl && key.name === 'c') {
+                    process.exit();
+                } else {
+                    switch (key.name) {
+                        case "return":
+                            process.stdout.write("\n");
+                            this.eval();
+                            break;
+                        case "backspace":
+                            this.command = this.command.substring(0, this.command.length - 1);
+                            process.stdout.write("\r🐸 \x1b[32m>\x1b[0m " + this.command + "\x1b[K");
+                            break;
+                        case "up":
+                            if (this.historyPosition - 1 < 0) {
+                                this.historyPosition -= 1;
                                 if (this.history[this.historyPosition] !== undefined) {
                                     this.command = this.history[this.historyPosition]
                                 } else {
                                     this.command = "";
                                 }
+                            } else {
+                                if (this.history.length === 0) {
+                                    this.command = "";
+                                } else this.command = this.history[this.historyPosition]
                             }
-                        }
-                        break;
-                    default:
-                        this.command += str
-                };
+                            break;
+                        case "down":
+                            if (this.history.length > 0) {
+                                if (this.historyPosition + 1 < 0) {
+                                    if (this.history[this.historyPosition] !== undefined) {
+                                        this.command = this.history[this.historyPosition]
+                                    } else {
+                                        this.command = "";
+                                    }
+                                }
+                            }
+                            break;
+                        default:
+                            this.command += str
+                    };
 
-                process.stdout.write("\r🐸 \x1b[32m>\x1b[0m " + this.command);
+                    process.stdout.write("\r🐸 \x1b[32m>\x1b[0m " + this.command);
+                }
             }
         });
+        setInterval(() => {
+        }, 300)
         logger.log("Welcome to the Croakerr REPL.")
         logger.log("Use \x1b[32mhelp\x1b[0m for more info.\x1b[0m")
         process.stdout.write(`\r🐸 \x1b[32m>\x1b[0m `);
@@ -82,6 +85,8 @@ export default class REPL extends EventEmitter {
 
 
     async eval() {
+        process.stdin.setRawMode(false);
+        process.stdin.setRawMode(true);
         this.history.push(this.command);
         let cmd = this.command;
         this.command = "";
@@ -147,17 +152,27 @@ export default class REPL extends EventEmitter {
                 if (args[1]) {
                     let plugin = this.pm.plugins.get(args[1])
                     if (plugin) {
-                        console.log(`Plugin:      ${plugin.manifest.name}`);
+                        console.log(`Name:        ${plugin.manifest.name}`);
                         console.log(`Version:     ${plugin.manifest.version}`);
                         console.log(`Description: ${plugin.manifest.description ? plugin.manifest.description : "Not Specified"}`);
                         console.log(`Author:      ${plugin.manifest.author}`);
                         console.log(`Homepage:    ${plugin.manifest.homepage ? plugin.manifest.homepage : "Not Specified"}`);
+                        console.log(`Loaded:      ${plugin.metadata.loaded.toLocaleString()}`)
                         console.log(`Hook Audit:`)
                         let hooks = Array.from(plugin.iface.events.keys());
                         for (let i = 0; i < hooks.length; i++) {
                             let hook = hooks[i];
+
                             console.log("  - ", hook);
                         }
+                        console.log(`Hook Usage:`)
+                        let hooksUsed = Array.from(plugin.metadata.statistics.entries());
+                        for (let i = 0; i < hooksUsed.length; i++) {
+                            let [hook, calls] = hooksUsed[i];
+
+                            console.log("  - ", calls.toLocaleString(), hook);
+                        }
+
                     } else {
                         console.log("Error: Unable to locate plugin by that name.")
                     }

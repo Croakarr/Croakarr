@@ -55,7 +55,7 @@ async function runtime() {
         }
     });
 
-    pluginManager.loadAll(config);
+    await pluginManager.loadAll(config);
 
 
 }

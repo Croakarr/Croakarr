@@ -58,7 +58,7 @@ export default class PluginManager extends EventEmitter {
                     logger.debug("Plugin validation passed.")
                     let route = resolve(path.join("/"), manifest.name)
                     logger.debug("Extracting to " + route)
-                    archive.extractAllTo(route);
+                    archive.extractAllTo(route, true);
                     logger.debug("Removing plugin archive");
                     rmSync(entry)
                     targets.push(route);
@@ -110,7 +110,11 @@ export default class PluginManager extends EventEmitter {
                 if (plugin.entity.enable) {
                     try {
                         logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
-                        plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+                        let result = plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+
+                        console.log(result);
+                        process.exit();
+
                     } catch (e) {
                         logger.error("Failed to initialize plugin: " + plugin.manifest.name);
                         logger.debug(e + "");
@@ -125,7 +129,7 @@ export default class PluginManager extends EventEmitter {
         return true;
     }
 
-    loadAll(config: CroakerrConfig) {
+    async loadAll(config: CroakerrConfig) {
         let collections: string[] = [];
         let targets: string[] = [];
 
@@ -160,7 +164,7 @@ export default class PluginManager extends EventEmitter {
                     logger.debug("Plugin validation passed.")
                     let route = resolve(path.join("/"), manifest.name)
                     logger.debug("Extracting to " + route)
-                    archive.extractAllTo(route);
+                    archive.extractAllTo(route, true);
                     logger.debug("Removing plugin archive");
                     rmSync(entry)
                     targets.push(route);
@@ -217,9 +221,29 @@ export default class PluginManager extends EventEmitter {
                 if (plugin.entity.enable) {
                     try {
                         logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
-                        plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
-                        plugin.status.active = true;
-                        this.plugins.set(name, plugin);
+                        let status = plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+
+                        if (!status) {
+                            logger.error("Invalid plugin `init` return value.");
+                            logger.warn("\x1b[33mSince Croakerr V0.0.2, plugins have been required to return an array containing matching the following format(s)");
+                            logger.warn("\x1b[33m[success, error message]");
+                            logger.warn("\x1b[33m[boolean, Error | null]");
+                            logger.warn("\x1b[33mIf your plugin encounters an error whilst loading, please return \x1b[2m[false, Error]\x1b[0m");
+                            logger.warn("\x1b[33mThat way errors can be properly reported to the user through status monitoring.\x1b[0m");
+                        } else if (status instanceof Promise) {
+                            let [success, error] = await status;
+                            if (success) {
+                                plugin.status.active = true;
+                                this.plugins.set(name, plugin);
+                            } else {
+                                plugin.status.active = false;
+                                plugin.status.error = error;
+                            }
+                        } else {
+                            console.log(typeof status);
+                        }
+
+
                     } catch (e) {
                         logger.error("Failed to initialize plugin: " + plugin.manifest.name);
                         logger.debug(e + "");
@@ -262,9 +286,15 @@ export default class PluginManager extends EventEmitter {
     emitEvent(event: string, data: any) {
         let plugins = [...this.plugins];
         for (let i = 0; i < plugins.length; i++) {
-            let [_, plugin] = plugins[i];
+            let [name, plugin] = plugins[i];
             let handler = plugin.iface.events.get(event);
-            if (handler) handler(data);
+            if (handler) {
+                handler(data)
+                let stats = plugin.metadata.statistics.get(event);
+                if (!stats) stats = 0;
+                plugin.metadata.statistics.set(event, stats + 1)
+                this.plugins.set(name, plugin);
+            };
         }
     }
 }
