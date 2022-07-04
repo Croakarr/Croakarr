@@ -1,7 +1,7 @@
 import axios from "axios";
 import prompt from "prompts";
 
-import { CroakerrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakerrConfig";
 import PluginManifest from "../interfaces/PluginManifest";
 import { Logger } from "./Logger";
 
@@ -15,10 +15,10 @@ export default class PluginInterface {
     events: Map<string, Function> = new Map();
     features: Map<string, boolean> = new Map();
     manifest: PluginManifest;
-    config: CroakerrConfig;
+    config: CroakarrConfig;
     logger: Logger;
 
-    constructor(manifest: PluginManifest, config: CroakerrConfig, logger: Logger) {
+    constructor(manifest: PluginManifest, config: CroakarrConfig, logger: Logger) {
         this.manifest = manifest;
         this.config = config
         this.logger = logger;

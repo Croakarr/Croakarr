@@ -3,7 +3,7 @@ import { EventEmitter } from "stream";
 import readline from "readline";
 
 import PluginManager from "./helpers/PluginManager";
-import { CroakerrConfig } from "./interfaces/CroakerrConfig";
+import { CroakarrConfig } from "./interfaces/CroakerrConfig";
 import { Logger } from "./helpers/Logger";
 import { resolve } from "path";
 import { Application } from "express";
@@ -12,14 +12,14 @@ readline.emitKeypressEvents(process.stdin);
 
 export default class REPL extends EventEmitter {
     server: Server;
-    config: CroakerrConfig;
+    config: CroakarrConfig;
     pm: PluginManager;
     history: string[] = [];
     historyPosition: number = 0;
     logger: Logger;
     app: Application;
     command: string = "";
-    constructor(logger: Logger, server: Server, config: CroakerrConfig, pm: PluginManager, app: Application) {
+    constructor(logger: Logger, server: Server, config: CroakarrConfig, pm: PluginManager, app: Application) {
         super();
         this.app = app;
         this.server = server;

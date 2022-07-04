@@ -2,12 +2,13 @@ import PluginManager from "./helpers/PluginManager";
 import * as system from "./system";
 
 import logger from "./helpers/Logger";
-import { CroakerrConfig } from "./interfaces/CroakerrConfig";
+import { CroakarrConfig } from "./interfaces/CroakerrConfig";
 import express, { Request, Response } from "express";
 import multer from "multer";
 import parseEvent from "./helpers/eventParser";
 import { Server } from "net";
 import REPL from "./repl"
+import axios from "axios";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
@@ -15,7 +16,7 @@ const app = express();
 process.env.CROAKERR_VERSION = "0.0.1";
 
 let server: Server | null = null;
-let config: CroakerrConfig | null;
+let config: CroakarrConfig | null;
 let pluginManager: PluginManager | null;
 
 logger.log("Welcome to Croakerr.")
@@ -32,6 +33,10 @@ runtime()
 
 async function runtime() {
     config = await system.loadConfig();
+
+    await checkServices();
+
+
 
     pluginManager = new PluginManager(config);
 
@@ -79,14 +84,17 @@ async function spawnInterface() {
 
 
 async function router(req: Request, res: Response) {
+    res.sendStatus(200);
     try {
-        let [event, data] = parseEvent(req, logger);
+        let events = parseEvent(req, logger);
 
-        if (event.length > 0 && pluginManager !== null) {
-            pluginManager.emitEvent(event, data);
+        for (let i = 0; i < events.length; i++) {
+            let [event, data] = events[i];
+            console.log("Emitting event: ", event);
+            if (event.length > 0 && pluginManager !== null) {
+                pluginManager.emitEvent(event, data);
+            }
         }
-
-        res.sendStatus(200);
     } catch (e) {
         logger.error("Unexpected error handling webhook");
         logger.debug(e + "");
@@ -104,3 +112,57 @@ function shutdown() {
 process.on("SIGTERM", shutdown);
 process.on("SIGKILL", shutdown);
 process.on("beforeExit", shutdown);
+
+
+
+
+async function checkServices() {
+    if (config !== null) {
+        if (config.services.sonarr.enabled) {
+            let url = "http";
+
+            if (config.services.sonarr.useSSL) url += "s";
+            if (!config.services.sonarr.token) {
+                logger.error("Service \x1b[32m'Sonarr'\x1b[0m has no API key, however one is required.")
+                logger.error("Service will be unavailable until remedied and restarted.")
+                config.services.sonarr.enabled = false;
+            } else {
+                let req = await axios.get(url + "://" + config.services.sonarr.host + ":" + config.services.sonarr.port + "/system/status", {
+                    headers: {
+                        "user-agent": "Croakarr",
+                        "content-type": "application/json",
+                        "X-Api-Key": config.services.sonarr.token
+                    }
+                }).catch(reason => {
+                    logger.warn("Requested errored with reason:")
+                    logger.debug(reason)
+                });
+
+                if (req) console.log(req.data);
+            }
+        }
+
+        if (config.services.lidarr.enabled) {
+
+        }
+
+        if (config.services.radarr.enabled) {
+
+        }
+
+        if (config.services.plex.enabled) {
+
+        }
+
+        if (config.services.ombi.enabled) {
+
+        }
+
+        if (config.services.jellyfin.enabled) {
+
+        }
+    }
+}
+
+
+

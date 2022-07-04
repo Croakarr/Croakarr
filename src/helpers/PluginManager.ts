@@ -4,7 +4,7 @@ import { resolve } from "path";
 
 import Zip from "adm-zip";
 
-import { CroakerrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakerrConfig";
 import logger, { Logger } from "../helpers/Logger";
 import Plugin from "./Plugin";
 
@@ -13,7 +13,7 @@ export default class PluginManager extends EventEmitter {
 
     plugins: Map<string, Plugin> = new Map();
 
-    constructor(config: CroakerrConfig) {
+    constructor(config: CroakarrConfig) {
         super();
 
         // Load config defined plugin directories, or, if undefined or empty, load the default plugin directory
@@ -21,7 +21,7 @@ export default class PluginManager extends EventEmitter {
         if (this.paths.length === 0) this.paths.push("plugins");
     }
 
-    load(config: CroakerrConfig, name: string) {
+    load(config: CroakarrConfig, name: string) {
         let collections: string[] = [];
         let targets: string[] = [];
 
@@ -129,7 +129,7 @@ export default class PluginManager extends EventEmitter {
         return true;
     }
 
-    async loadAll(config: CroakerrConfig) {
+    async loadAll(config: CroakarrConfig) {
         let collections: string[] = [];
         let targets: string[] = [];
 

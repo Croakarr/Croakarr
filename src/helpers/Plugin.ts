@@ -1,7 +1,7 @@
 import PluginManifest from "../interfaces/PluginManifest";
 import PluginInterface from "./PluginInterface";
 import logger, { Logger } from "../helpers/Logger";
-import { CroakerrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakerrConfig";
 
 export default class Plugin {
     metadata: PluginMetadata;
@@ -10,7 +10,7 @@ export default class Plugin {
     entity: any;
     status: pluginStatus;
 
-    constructor(entrypoint: string, manifest: PluginManifest, config: CroakerrConfig) {
+    constructor(entrypoint: string, manifest: PluginManifest, config: CroakarrConfig) {
         this.manifest = manifest;
         this.iface = new PluginInterface(manifest, config, new Logger(manifest.name));
         this.entity = require(entrypoint);

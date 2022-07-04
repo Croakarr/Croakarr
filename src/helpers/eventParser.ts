@@ -1,40 +1,31 @@
 import { Request } from "express";
 import { Logger } from "./Logger";
 
-export default function parseEvent(req: Request, logger: Logger): [string, any] {
-    let ua = req.headers['user-agent'];
-    let event = "";
-    let data = null;
-    if (ua !== undefined) {
-        ua = ua.split("/").shift();
-        switch (ua) {
-            case "Sonarr":
-                event = "sonarr.";
-                data = req.body;
-                event += data.eventType.toLowerCase();
-                break;
-            case "Radarr":
-                event = "radarr.";
-                data = req.body;
-                event += data.eventType.toLowerCase();
-                break;
-            case "Lidarr":
-                event = "lidarr.";
-                data = req.body;
-                event += data.eventType.toLowerCase();
-                break;
-            case "PlexMediaServer":
-                event = "plex.";
-                data = JSON.parse(req.body.payload);
-                event += data.event;
-                break;
-            default:
-                logger.debug("Unknown useragent: " + ua);
-        }
-    } else {
-        console.log(req.headers);
-        console.log(req.body);
+import lidarr from "./applications/Lidarr/middleware";
+import sonarr from "./applications/Sonarr/middleware";
+import radarr from "./applications/Sonarr/middleware";
+import jellyfin from "./applications/Jellyfin/middleware";
+import plex from "./applications/Plex/middleware";
+import ombi from "./applications/Ombi/middleware";
+
+const middleware = [
+    lidarr,
+    sonarr,
+    radarr,
+    jellyfin,
+    plex,
+    ombi
+]
+
+export default function parseEvent(req: Request, logger: Logger): [string, any][] {
+    let events: [string, any][] = [];
+
+
+    for (let i = 0; i < middleware.length; i++) {
+        let processed = middleware[i](req.headers, req.body, logger);
+
+        if(processed) events.push(processed)
     }
 
-    return [event, data]
+    return events
 }
