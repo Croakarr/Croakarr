@@ -2,7 +2,7 @@ import { CroakerrConfig, DEFAULT, validator } from "./interfaces/CroakerrConfig"
 
 import { existsSync, readFileSync, writeFileSync } from "fs";
 
-import { prompt } from "enquirer";
+import prompt, { prompts } from "prompts";
 
 import logger from "./helpers/Logger";
 
@@ -17,22 +17,29 @@ export async function loadConfig(): Promise<CroakerrConfig> {
         logger.error("Invalid configuration file...");
         let guide: any = await prompt({
             name: "guided",
-            type: "confirm",
-            message: "Would you like to use the guided setup?"
+            message: "Would you like to use the guided setup?",
+            type: "toggle",
+            initial: false,
+            active: "Yes",
+            inactive: "No"
         });
 
-        if (guide.guided) {
+
+        if (guide) {
             logger.debug("Preparing guided configuration session.")
             logger.debug("please wait...")
             config = await guided();
             writeFileSync("./config.json", JSON.stringify(config));
         } else {
-            let overwrite: any = await prompt({
-                name: "granted",
-                type: "confirm",
-                message: "Would you like to overrite the corrupt config?"
+            let overwrite: any = await prompts.toggle({
+                name: "overwrite",
+                message: "Would you like to overrite the corrupt config?",
+                type: "toggle",
+                initial: false,
+                active: "Yes",
+                inactive: "No"
             });
-            if (overwrite.granted) {
+            if (overwrite) {
                 writeFileSync("./config.json", JSON.stringify(DEFAULT));
             } else {
                 logger.warn("Configuration untouched, this message will show up every time that Croakerr launches")
@@ -41,29 +48,40 @@ export async function loadConfig(): Promise<CroakerrConfig> {
             }
         }
 
-
+        process.stdin.setRawMode(true)
+        process.stdin.setEncoding('utf8')
+        process.env.CRPROMPTING = "false";
+        process.stdin.resume()
         return DEFAULT;
     } else {
         let config = DEFAULT;
         logger.log("\x1b[34mThis appears to be the first time that Croakerr has run.\x1b[0m")
         logger.log("Initial launch may be longer than expected.");
-        let guide: any = await prompt({
+        let guide: any = await prompts.toggle({
             name: "guided",
-            type: "confirm",
-            message: "Would you like to use the guided setup?"
+            message: "Would you like to use the guided setup?",
+            type: "toggle",
+            initial: false,
+            active: "Yes",
+            inactive: "No"
         });
 
-        if (guide.guided) {
+        console.log(guide);
+
+        if (guide) {
             logger.debug("Preparing guided configuration session.")
             logger.debug("please wait...")
             config = await guided();
         }
 
         writeFileSync("./config.json", JSON.stringify(config));
+
+        process.stdin.setRawMode(true)
+        process.stdin.setEncoding('utf8')
+        process.env.CRPROMPTING = "false";
+        process.stdin.resume()
         return config;
     }
-
-    return DEFAULT;
 }
 
 
@@ -76,22 +94,25 @@ async function guided(): Promise<CroakerrConfig> {
     let config = DEFAULT;
 
     try {
-        let queries: any = await prompt([
-            {
+        let queries: any = {
+            interface: await prompts.text({
                 name: "interface",
-                type: "input",
+                type: "text",
                 message: "What interface should Croakerr bind?",
                 initial: config.interface,
-                validate: (value: string): boolean => value.match(VALIDATE) !== null || value.toLowerCase() === "localhost"
-            },
-            {
+                validate: (value: string) => (value.match(VALIDATE) !== null || value.toLowerCase() === "localhost") ? true : "Value must be a valid IP address or 'localhost'"
+            }),
+            port: await prompts.number({
                 name: "port",
-                type: "numeral",
+                type: "number",
                 message: "What port should Croakerr bind?",
                 initial: config.port,
-                validate: (value: string): boolean => parseInt(value) > 0 && parseInt(value) < 65535
-            }
-        ])
+                validate: (value: string) => (parseInt(value) > 0 && parseInt(value) < 65535) ? true : 'Port number must be more than 0 and less than 65535'
+            })
+        }
+
+        console.log(queries)
+
         if (queries.interface) config.interface = queries.interface;
         if (queries.port) config.port = queries.port;
     } catch (e) {

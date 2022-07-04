@@ -1,5 +1,5 @@
 import axios from "axios";
-import enquirer from "enquirer";
+import prompt from "prompts";
 
 import { CroakerrConfig } from "../interfaces/CroakerrConfig";
 import PluginManifest from "../interfaces/PluginManifest";
@@ -70,7 +70,7 @@ export default class PluginInterface {
     async prompt(question: any): Promise<any> {
         try {
             process.env.CRPROMPTING = "true";
-            let x = await enquirer.prompt(question);
+            let x = await prompt(question);
             process.stdin.setRawMode(true)
             process.stdin.setEncoding('utf8')
             process.env.CRPROMPTING = "false";

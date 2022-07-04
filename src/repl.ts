@@ -28,7 +28,7 @@ export default class REPL extends EventEmitter {
         this.logger = logger;
         // let interval: null | NodeJS.Timer = null;
         // let showColon: boolean = false;
-        process.stdin.on('keypress', (str, key) => {
+        process.stdin.on('keypress', async (str, key) => {
             if (process.env.CRPROMPTING !== "true") {
                 if (key.ctrl && key.name === 'c') {
                     process.exit();
@@ -36,7 +36,7 @@ export default class REPL extends EventEmitter {
                     switch (key.name) {
                         case "return":
                             process.stdout.write("\n");
-                            this.eval();
+                            await this.eval();
                             break;
                         case "backspace":
                             this.command = this.command.substring(0, this.command.length - 1);
@@ -75,8 +75,6 @@ export default class REPL extends EventEmitter {
                 }
             }
         });
-        setInterval(() => {
-        }, 300)
         logger.log("Welcome to the Croakerr REPL.")
         logger.log("Use \x1b[32mhelp\x1b[0m for more info.\x1b[0m")
         process.stdout.write(`\r🐸 \x1b[32m>\x1b[0m `);
@@ -118,7 +116,7 @@ export default class REPL extends EventEmitter {
                 break;
             case "plugin":
                 args.shift();
-                this.plugins(args);
+                await this.plugins(args);
                 break;
 
             case "reload":
@@ -146,7 +144,7 @@ export default class REPL extends EventEmitter {
     }
 
 
-    plugins(args: string[]) {
+    async plugins(args: string[]) {
         switch (args[0]) {
             case "info":
                 if (args[1]) {
@@ -251,7 +249,7 @@ export default class REPL extends EventEmitter {
             case "load":
                 if (args[1]) {
                     if (args[1] === "all") {
-                        this.pm.loadAll(this.config);
+                        await this.pm.loadAll(this.config);
                     }
                 }
                 break;
@@ -260,7 +258,7 @@ export default class REPL extends EventEmitter {
                 if (args[1]) {
                     if (args[1] === "all") {
                         this.pm.unloadAll();
-                        this.pm.loadAll(this.config);
+                        await this.pm.loadAll(this.config);
                     }
                 }
 

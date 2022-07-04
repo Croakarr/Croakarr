@@ -221,7 +221,7 @@ export default class PluginManager extends EventEmitter {
                 if (plugin.entity.enable) {
                     try {
                         logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
-                        let status = plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+                        let status = plugin.entity.enable({ croakarr: plugin.iface, logger: new Logger(plugin.manifest.name) });
 
                         if (!status) {
                             logger.error("Invalid plugin `init` return value.");
