@@ -1,7 +1,7 @@
 import PluginManifest from "../interfaces/PluginManifest";
 import PluginInterface from "./PluginInterface";
 import logger, { Logger } from "../helpers/Logger";
-import { CroakarrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakarrConfig";
 
 export default class Plugin {
     metadata: PluginMetadata;

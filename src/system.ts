@@ -1,4 +1,4 @@
-import { CroakarrConfig, DEFAULT, Service, validator } from "./interfaces/CroakerrConfig";
+import { CroakarrConfig, DEFAULT, Service, validator } from "./interfaces/CroakarrConfig";
 
 import { existsSync, readFileSync, writeFileSync } from "fs";
 
@@ -42,7 +42,7 @@ export async function loadConfig(): Promise<CroakarrConfig> {
             if (overwrite) {
                 writeFileSync("./config.json", JSON.stringify(DEFAULT));
             } else {
-                logger.warn("Configuration untouched, this message will show up every time that Croakerr launches")
+                logger.warn("Configuration untouched, this message will show up every time that Croakarr launches")
                 logger.warn("until the conguration meets the specification once again.")
                 logger.warn("Falling back to DEFAULT_CONFIG")
             }
@@ -55,7 +55,7 @@ export async function loadConfig(): Promise<CroakarrConfig> {
         return DEFAULT;
     } else {
         let config = DEFAULT;
-        logger.log("\x1b[34mThis appears to be the first time that Croakerr has run.\x1b[0m")
+        logger.log("\x1b[34mThis appears to be the first time that Croakarr is run.\x1b[0m")
         logger.log("Initial launch may be longer than expected.");
         let guide: any = await prompts.toggle({
             name: "guided",
@@ -96,14 +96,14 @@ async function guided(): Promise<CroakarrConfig> {
             interface: await prompts.text({
                 name: "interface",
                 type: "text",
-                message: "What interface should Croakerr bind?",
+                message: "What interface should Croakarr bind?",
                 initial: config.interface,
                 validate: (value: string) => (value.match(VALIDATE) !== null || value.toLowerCase() === "localhost") ? true : "Value must be a valid IP address or 'localhost'"
             }),
             port: await prompts.number({
                 name: "port",
                 type: "number",
-                message: "What port should Croakerr bind?",
+                message: "What port should Croakarr bind?",
                 initial: config.port,
                 validate: (value: string) => (parseInt(value) > 0 && parseInt(value) < 65535) ? true : 'Port number must be more than 0 and less than 65535'
             }),
@@ -146,14 +146,14 @@ async function serviceSetup(name: string, defaultPort: number): Promise<Service>
                 host: await prompts.text({
                     name: "host",
                     type: "text",
-                    message: "What host is " + name + " accessible from?",
+                    message: "What host is" + name.split(" ").pop() + " accessible from?",
                     initial: "127.0.0.1",
                     validate: (value: string) => (value.match(VALIDATE) !== null || value.toLowerCase() === "localhost") ? true : "Value must be a valid IP address or 'localhost'"
                 }),
                 port: await prompts.number({
                     name: "port",
                     type: "number",
-                    message: "What port is " + name + " accessible from?",
+                    message: "What port is " + name.split(" ").pop() + " accessible from?",
                     initial: defaultPort,
                     validate: (value: string) => (parseInt(value) > 0 && parseInt(value) < 65535) ? true : 'Port number must be more than 0 and less than 65535'
                 }),
@@ -168,7 +168,7 @@ async function serviceSetup(name: string, defaultPort: number): Promise<Service>
                 token: await prompts.text({
                     name: "host",
                     type: "text",
-                    message: "Enter your " + name + " API key",
+                    message: "Enter your " + name.split(" ").pop() + " API key",
                 })
             }
 

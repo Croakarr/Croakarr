@@ -28,8 +28,8 @@ export const DEFAULT: CroakarrConfig = {
     interface: "0.0.0.0",
     port: 8371,
     pluginDirectories: [
-        "plugins",
-        "../croakerrplugins/bundles"
+        // "plugins",
+        // "../croakerrplugins/bundles"
     ],
     services: {
         sonarr: {

@@ -4,7 +4,7 @@ import { resolve } from "path";
 
 import Zip from "adm-zip";
 
-import { CroakarrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakarrConfig";
 import logger, { Logger } from "../helpers/Logger";
 import Plugin from "./Plugin";
 
@@ -45,7 +45,7 @@ export default class PluginManager extends EventEmitter {
                 let archive = new Zip(entry);
                 let manifest: any = null;
                 try {
-                    let txt = archive.readAsText("croakerr-manifest.json")
+                    let txt = archive.readAsText("Croakarr-manifest.json")
                     manifest = JSON.parse(txt);
                 } catch (e) {
                     console.log(e);
@@ -71,7 +71,7 @@ export default class PluginManager extends EventEmitter {
 
         for (let i = 0; i < targets.length; i++) {
             let path = targets[i];
-            let manifest = resolve(path, "croakerr-manifest.json");
+            let manifest = resolve(path, "Croakarr-manifest.json");
             let rawManifest = readFileSync(manifest, 'utf-8');
             let parsed = null;
             try {
@@ -110,7 +110,7 @@ export default class PluginManager extends EventEmitter {
                 if (plugin.entity.enable) {
                     try {
                         logger.debug("Attempting to initialize plugin: " + plugin.manifest.name);
-                        let result = plugin.entity.enable({ croakerr: plugin.iface, logger: new Logger(plugin.manifest.name) });
+                        let result = plugin.entity.enable({ Croakarr: plugin.iface, logger: new Logger(plugin.manifest.name) });
 
                         console.log(result);
                         process.exit();
@@ -151,7 +151,7 @@ export default class PluginManager extends EventEmitter {
                 let archive = new Zip(entry);
                 let manifest: any = null;
                 try {
-                    let txt = archive.readAsText("croakerr-manifest.json")
+                    let txt = archive.readAsText("Croakarr-manifest.json")
                     manifest = JSON.parse(txt);
                 } catch (e) {
                     console.log(e);
@@ -177,7 +177,7 @@ export default class PluginManager extends EventEmitter {
 
         for (let i = 0; i < targets.length; i++) {
             let path = targets[i];
-            let manifest = resolve(path, "croakerr-manifest.json");
+            let manifest = resolve(path, "Croakarr-manifest.json");
             let rawManifest = readFileSync(manifest, 'utf-8');
             let parsed = null;
             try {
@@ -225,7 +225,7 @@ export default class PluginManager extends EventEmitter {
 
                         if (!status) {
                             logger.error("Invalid plugin `init` return value.");
-                            logger.warn("\x1b[33mSince Croakerr V0.0.2, plugins have been required to return an array containing matching the following format(s)");
+                            logger.warn("\x1b[33mSince Croakarr V0.0.2, plugins have been required to return an array containing matching the following format(s)");
                             logger.warn("\x1b[33m[success, error message]");
                             logger.warn("\x1b[33m[boolean, Error | null]");
                             logger.warn("\x1b[33mIf your plugin encounters an error whilst loading, please return \x1b[2m[false, Error]\x1b[0m");
@@ -305,6 +305,6 @@ function getDirectories(source: string) {
     if (existsSync(source)) return readdirSync(source, { withFileTypes: true })
         .filter(dirent => dirent.isDirectory() || dirent.name.endsWith(".zip"))
         .map(dirent => source + "/" + dirent.name)
-        .filter(dirent => existsSync(resolve(dirent, "croakerr-manifest.json")) || dirent.endsWith(".zip"));
+        .filter(dirent => existsSync(resolve(dirent, "croakarr-manifest.json")) || dirent.endsWith(".zip"));
     return []
 }

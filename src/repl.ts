@@ -3,7 +3,7 @@ import { EventEmitter } from "stream";
 import readline from "readline";
 
 import PluginManager from "./helpers/PluginManager";
-import { CroakarrConfig } from "./interfaces/CroakerrConfig";
+import { CroakarrConfig } from "./interfaces/CroakarrConfig";
 import { Logger } from "./helpers/Logger";
 import { resolve } from "path";
 import { Application } from "express";
@@ -75,7 +75,7 @@ export default class REPL extends EventEmitter {
                 }
             }
         });
-        logger.log("Welcome to the Croakerr REPL.")
+        logger.log("Welcome to the Croakarr REPL.")
         logger.log("Use \x1b[32mhelp\x1b[0m for more info.\x1b[0m")
         process.stdout.write(`\r🐸 \x1b[32m>\x1b[0m `);
 
@@ -93,13 +93,13 @@ export default class REPL extends EventEmitter {
             case "exit":
                 process.exit();
             case "version":
-                console.log("Croakerr Version " + process.env.CROAKERR_VERSION);
+                console.log("Croakarr Version " + process.env.CROAKARR_VERSION);
                 console.log();
                 break;
             case "help":
                 console.log("Available commands");
                 console.log();
-                console.log("exit            - Quits Croakerr");
+                console.log("exit            - Quits Croakarr");
                 console.log();
                 console.log("help            - Shows this message");
                 console.log();

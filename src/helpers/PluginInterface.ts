@@ -1,7 +1,7 @@
 import axios from "axios";
 import prompt from "prompts";
 
-import { CroakarrConfig } from "../interfaces/CroakerrConfig";
+import { CroakarrConfig } from "../interfaces/CroakarrConfig";
 import PluginManifest from "../interfaces/PluginManifest";
 import { Logger } from "./Logger";
 
@@ -44,7 +44,7 @@ export default class PluginInterface {
         try {
             await axios.post(url, data, {
                 headers: {
-                    'user-agent': "Croakerr/Version 0.0.1"
+                    'user-agent': "Croakarr"
                 }
             });
         } catch (e) {
@@ -57,7 +57,7 @@ export default class PluginInterface {
         try {
             return axios.get(url, {
                 headers: {
-                    'user-agent': "Croakerr/Version 0.0.1"
+                    'user-agent': "Croakarr"
                 }
             })
         } catch (e) {
